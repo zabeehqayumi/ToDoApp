@@ -12,7 +12,7 @@ class ToDoViewController: UITableViewController {
     
     
     let done = false
-    let itemArray = ["Ali", "Emal", "khan"]
+    var itemArray = ["Ali", "Emal", "khan"]
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -43,10 +43,32 @@ class ToDoViewController: UITableViewController {
         }
     }
     
+    @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
+        var alertTextField = UITextField()
+        
+        let alert = UIAlertController(title: "Add Item", message: "Please Add Your Favorite Items", preferredStyle: .alert)
+        let action = UIAlertAction(title: "Add", style: .default) { (action) in
+            self.itemArray.append(alertTextField.text!)
+            self.tableView.reloadData()
+        }
+        alert.addTextField { (textField) in
+            textField.placeholder = "Type you item here"
+            alertTextField = textField
+           
+        }
+        
+        alert.addAction(action)
+        present(alert,animated: true, completion: nil)
+
+        
+    }
     
-
-
-
-
 }
+
+
+
+
+
+
+
 
