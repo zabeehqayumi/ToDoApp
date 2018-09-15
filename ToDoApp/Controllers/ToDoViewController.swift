@@ -10,18 +10,17 @@ import UIKit
 
 class ToDoViewController: UITableViewController {
     
-    let defaults = UserDefaults.standard
+       let filePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.Plist")
+
     let done = false
     
-    var itemArray: [String] = []
+    var itemArray = [Item]()
     
     override func viewDidLoad() {
         
         super.viewDidLoad()
-        
-        if let items = defaults.array(forKey: "ToDoListArray") as? [String]{
-            itemArray = items
-        }
+        // Calling Method
+        loadItems()
 
     }
     
@@ -33,30 +32,39 @@ class ToDoViewController: UITableViewController {
     }
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
-        cell.textLabel?.text = itemArray[indexPath.row]
+        let item = itemArray[indexPath.row]
+        cell.textLabel?.text = item.title
+        //ternary operator
+        cell.accessoryType = item.done ==  true ? .checkmark : .none
         return cell
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        
+        itemArray[indexPath.row].done = !itemArray[indexPath.row].done
+        // Calling Method
+        saveItem()
         tableView.deselectRow(at: indexPath, animated: true)
-       print(itemArray[indexPath.row])
 
-        if tableView.cellForRow(at: indexPath)?.accessoryType == .checkmark{
-            tableView.cellForRow(at: indexPath)?.accessoryType = .none
-        }
-        else{
-            tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
+   
 
-        }
     }
     
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
         var newTextField = UITextField()
         let alert = UIAlertController(title: "Add Item", message: "Please add your fav item", preferredStyle: .alert)
         let action = UIAlertAction(title: "Add", style: .default) { (action) in
-            self.itemArray.append(newTextField.text!)
-            self.defaults.set(self.itemArray, forKey: "ToDoListArray")
-            self.tableView.reloadData()
+            
+            let newItem = Item()
+            newItem.title = newTextField.text!
+            
+            self.itemArray.append(newItem)
+            
+            //caling method
+            
+            self.saveItem()
+            
+    
         }
         
         alert.addTextField { (textField) in
@@ -68,6 +76,31 @@ class ToDoViewController: UITableViewController {
         present(alert, animated: true, completion: nil)
 
         
+    }
+    
+    func saveItem(){
+        
+        let encoder = PropertyListEncoder()
+        do{
+            let data = try encoder.encode(itemArray)
+            try data.write(to: filePath!)
+        }catch{
+            print("Could not encode data \(error.localizedDescription)")
+        }
+        
+        self.tableView.reloadData()
+        
+    }
+    
+    func loadItems(){
+        if let data = try? Data(contentsOf: filePath!){
+            let decoder = PropertyListDecoder()
+            do{
+                itemArray = try decoder.decode([Item].self, from: data)
+            }catch{
+                print("Could not laod data : \(error.localizedDescription)")
+            }
+        }
     }
     
 }
