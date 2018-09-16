@@ -7,13 +7,12 @@
 //
 
 import UIKit
+import CoreData
 
 class ToDoViewController: UITableViewController {
     
-       let filePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.Plist")
-
-    let done = false
-    
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+ 
     var itemArray = [Item]()
     
     override func viewDidLoad() {
@@ -34,12 +33,19 @@ class ToDoViewController: UITableViewController {
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
         let item = itemArray[indexPath.row]
         cell.textLabel?.text = item.title
+        
         //ternary operator
         cell.accessoryType = item.done ==  true ? .checkmark : .none
         return cell
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        //updating operation
+        //itemArray[indexPath.row].setValue("New crud operation", forKey: "title")
+        // deleting operation
+//       context.delete(itemArray[indexPath.row])
+//       itemArray.remove(at: indexPath.row)
+        
         
         itemArray[indexPath.row].done = !itemArray[indexPath.row].done
         // Calling Method
@@ -55,8 +61,12 @@ class ToDoViewController: UITableViewController {
         let alert = UIAlertController(title: "Add Item", message: "Please add your fav item", preferredStyle: .alert)
         let action = UIAlertAction(title: "Add", style: .default) { (action) in
             
-            let newItem = Item()
+            //core data context property
+            
+            let newItem = Item(context: self.context)
+            
             newItem.title = newTextField.text!
+            newItem.done = false
             
             self.itemArray.append(newItem)
             
@@ -79,30 +89,23 @@ class ToDoViewController: UITableViewController {
     }
     
     func saveItem(){
-        
-        let encoder = PropertyListEncoder()
         do{
-            let data = try encoder.encode(itemArray)
-            try data.write(to: filePath!)
+            try context.save()
         }catch{
             print("Could not encode data \(error.localizedDescription)")
         }
-        
-        self.tableView.reloadData()
-        
+        tableView.reloadData()
     }
-    
+
     func loadItems(){
-        if let data = try? Data(contentsOf: filePath!){
-            let decoder = PropertyListDecoder()
+        let request : NSFetchRequest<Item> = Item.fetchRequest()
             do{
-                itemArray = try decoder.decode([Item].self, from: data)
+               itemArray =  try context.fetch(request)
             }catch{
                 print("Could not laod data : \(error.localizedDescription)")
             }
         }
-    }
-    
+
 }
 
 
