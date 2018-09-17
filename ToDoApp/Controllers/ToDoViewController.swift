@@ -12,14 +12,22 @@ import CoreData
 class ToDoViewController: UITableViewController {
     
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    
  
     var itemArray = [Item]()
+    
+    // new some lines
+    
+    var selectedCategory : Category? {
+        didSet{
+            loadItems()
+        }
+     
+    }
     
     override func viewDidLoad() {
         
         super.viewDidLoad()
-        // Calling Method
-        loadItems()
 
     }
     
@@ -40,8 +48,8 @@ class ToDoViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        //updating operation
         //itemArray[indexPath.row].setValue("New crud operation", forKey: "title")
+        
         // deleting operation
 //       context.delete(itemArray[indexPath.row])
 //       itemArray.remove(at: indexPath.row)
@@ -64,9 +72,10 @@ class ToDoViewController: UITableViewController {
             //core data context property
             
             let newItem = Item(context: self.context)
-            
             newItem.title = newTextField.text!
             newItem.done = false
+            //new line
+            newItem.parentCategory = self.selectedCategory
             
             self.itemArray.append(newItem)
             
@@ -85,7 +94,6 @@ class ToDoViewController: UITableViewController {
         alert.addAction(action)
         present(alert, animated: true, completion: nil)
 
-        
     }
     
     func saveItem(){
@@ -96,16 +104,57 @@ class ToDoViewController: UITableViewController {
         }
         tableView.reloadData()
     }
-
-    func loadItems(){
-        let request : NSFetchRequest<Item> = Item.fetchRequest()
+    
+// some new changes
+    
+    func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest(), predicate :NSPredicate? = nil){
+        let categoryPredicate = NSPredicate(format: "parentCategory.name MATCHES %@", selectedCategory!.name!)
+        
+//        let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate, predicate!])
+//
+//        request.predicate = compoundPredicate
+        
+        
+        if let additionalPredicate = predicate{
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate, additionalPredicate])
+        }else{
+            request.predicate = categoryPredicate
+            
+        }
+        
+        
             do{
                itemArray =  try context.fetch(request)
             }catch{
                 print("Could not laod data : \(error.localizedDescription)")
             }
+        tableView.reloadData()
         }
+    
+}
 
+extension ToDoViewController: UISearchBarDelegate{
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        
+        
+        
+        let request : NSFetchRequest<Item> = Item.fetchRequest()
+        // changes made
+        let predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+
+        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+        
+        loadItems(with: request, predicate: predicate)
+    }
+    
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if searchBar.text?.count == 0{
+            loadItems()
+            DispatchQueue.main.async {
+                searchBar.resignFirstResponder()
+            }
+        }
+    }
 }
 
 
